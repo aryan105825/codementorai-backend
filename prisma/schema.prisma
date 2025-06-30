@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions     Session[]       
+  sessionLogs  SessionLog[]    
+  codeSnippets CodeSnippet[]   
+
+  peerRequestsFrom PeerRequest[] @relation("RequestFrom")
+  peerRequestsTo   PeerRequest[] @relation("RequestTo")
+
+    mentorReviewsGiven MentorReview[] @relation("FromUser")
+  mentorReviewsReceived MentorReview[] @relation("ToUser")
+}
+
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model CodeSnippet {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  content   String
+  language  String
+  createdAt DateTime @default(now())
+}
+model SessionLog {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  prompt    String?
+  language  String
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+model MentorReview {
+  id         String   @id @default(cuid())
+  sessionId  String
+  fromUserId String
+  toUserId   String
+  rating     Int
+  feedback   String?
+  createdAt  DateTime @default(now())
+
+  fromUser   User     @relation("FromUser", fields: [fromUserId], references: [id])
+  toUser     User     @relation("ToUser", fields: [toUserId], references: [id])
+}
+
+model PeerRequest {
+  id        String   @id @default(cuid())
+  fromId    String
+  toId      String
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+
+  fromUser  User     @relation("RequestFrom", fields: [fromId], references: [id])
+  toUser    User     @relation("RequestTo", fields: [toId], references: [id])
+}
+
+
+enum Role {
+  STUDENT
+  MENTOR
+  TEACHER
+}
